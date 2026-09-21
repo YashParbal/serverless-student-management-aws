@@ -151,83 +151,83 @@ This architecture removes the need to manage operating systems, EC2 instances, w
 
 The serverless application's database layer was created using **Amazon DynamoDB**, a fully managed NoSQL database service. A table named `studentData` was created in the `ap-south-1` region. The table uses `studentid` as its partition key with the data type set to String. No sort key was required because each student record can be uniquely identified using the student ID. DynamoDB was selected for this application because it allows the serverless backend to store and retrieve student records without requiring a traditional relational database server.
 
-![DynamoDB Table Configuration](<img width="1441" height="711" alt="Screenshot 2026-09-21 143916" src="https://github.com/user-attachments/assets/f6bfcf88-15c9-4637-b014-33925d4a96b6" />
+[DynamoDB Table Configuration] (<img width="1441" height="711" alt="Screenshot 2026-09-21 143916" src="https://github.com/user-attachments/assets/f6bfcf88-15c9-4637-b014-33925d4a96b6" />
 )
 
 ## IAM Role and Permissions
 
 An IAM execution role was created for the Lambda functions so that they could securely communicate with the DynamoDB table. An inline policy was attached to the role that allows the required DynamoDB operations. The `dynamodb:Scan` permission allows the READ-DB Lambda function to retrieve student records, while `dynamodb:PutItem` allows the WRITE-DB Lambda function to insert new student records into the `studentData` table. CloudWatch Logs permissions were also included so that Lambda execution logs can be created and written for monitoring and troubleshooting.
 
-![Lambda IAM Policy](<img width="1534" height="664" alt="Screenshot 2026-09-21 144602" src="https://github.com/user-attachments/assets/b8f6990c-e227-4704-b617-8bb66492dfe2" />
+[Lambda IAM Policy] (<img width="1534" height="664" alt="Screenshot 2026-09-21 144602" src="https://github.com/user-attachments/assets/b8f6990c-e227-4704-b617-8bb66492dfe2" />
 )
 
 ## READ-DB Lambda Function
 
 The first Lambda function, named **READ-DB**, was created using Python and is responsible for retrieving student records from DynamoDB. The function initializes the DynamoDB resource in the `ap-south-1` region, selects the `studentData` table, and uses the `Scan` operation to retrieve the stored student records. The function also handles DynamoDB pagination using `LastEvaluatedKey`, allowing additional records to be retrieved when the table contains more items than can be returned in a single scan operation.
 
-![READ-DB Lambda Function](<img width="821" height="532" alt="Screenshot 2026-09-21 145026" src="https://github.com/user-attachments/assets/8330ef88-e6c1-48e5-813d-d1925a789388" />
+[READ-DB Lambda Function] (<img width="821" height="532" alt="Screenshot 2026-09-21 145026" src="https://github.com/user-attachments/assets/8330ef88-e6c1-48e5-813d-d1925a789388" />
 )
 
 The READ-DB Lambda function was configured with the IAM execution role created for the serverless application. The Lambda configuration was kept lightweight, using 128 MB of memory, 512 MB of ephemeral storage, and a 3-second timeout. The execution role was selected under the Lambda function's basic settings so that the function could access DynamoDB and write execution logs to CloudWatch. Also do same for WRITE-DB.
 
-![READ-DB Lambda Configuration](<img width="1417" height="626" alt="Screenshot 2026-09-21 145105" src="https://github.com/user-attachments/assets/8b7e4b79-4cf6-41d3-b511-26a58846f43f" />
+[READ-DB Lambda Configuration] (<img width="1417" height="626" alt="Screenshot 2026-09-21 145105" src="https://github.com/user-attachments/assets/8b7e4b79-4cf6-41d3-b511-26a58846f43f" />
 )
 ## WRITE-DB Lambda Function
 
 A second Lambda function named **WRITE-DB** was created to insert new student records into DynamoDB. The function receives student information from the API request, extracts the `studentid`, `name`, `class`, and `age` values, and writes the information into the `studentData` DynamoDB table using the `PutItem` operation. This function provides the write operation required by the student management application.
 
-![WRITE-DB Lambda Function](<img width="824" height="507" alt="Screenshot 2026-09-21 145251" src="https://github.com/user-attachments/assets/33f6cd09-cc43-47ff-a660-afcf5bbf86e1" />
+[WRITE-DB Lambda Function] (<img width="824" height="507" alt="Screenshot 2026-09-21 145251" src="https://github.com/user-attachments/assets/33f6cd09-cc43-47ff-a660-afcf5bbf86e1" />
 )
 
 ## API Gateway Configuration
 
 After creating the Lambda functions, **Amazon API Gateway** was configured to provide HTTP access to the serverless backend. A Regional REST API named `students` was created. API Gateway acts as the communication layer between the static frontend hosted on Amazon S3 and the Lambda functions, allowing the frontend to send HTTP requests without directly accessing the Lambda functions.
 
-![API Gateway Creation](<img width="1395" height="665" alt="Screenshot 2026-09-21 145418" src="https://github.com/user-attachments/assets/710343a9-a44f-4397-88f5-7c115dee02d7" />
+[API Gateway Creation] (<img width="1395" height="665" alt="Screenshot 2026-09-21 145418" src="https://github.com/user-attachments/assets/710343a9-a44f-4397-88f5-7c115dee02d7" />
 )
 
 A **GET** method was created and integrated with the `READ-DB` Lambda function. When a client sends a GET request to the API, API Gateway invokes the READ-DB Lambda function, which retrieves the student records from DynamoDB and returns them to the frontend.
 
-![API Gateway GET Method](<img width="1457" height="621" alt="Screenshot 2026-09-21 145509" src="https://github.com/user-attachments/assets/10153c77-89cf-4af5-86d1-956fbe30d794" />
+[API Gateway GET Method] (<img width="1457" height="621" alt="Screenshot 2026-09-21 145509" src="https://github.com/user-attachments/assets/10153c77-89cf-4af5-86d1-956fbe30d794" />
 )
 
 A **POST** method was also created and integrated with the `WRITE-DB` Lambda function. When a student record is submitted through the frontend, the information is sent to API Gateway using a POST request. API Gateway then invokes the WRITE-DB Lambda function, which stores the student information in DynamoDB.
 
-![API Gateway POST Method](<img width="1290" height="557" alt="Screenshot 2026-09-21 145549" src="https://github.com/user-attachments/assets/996496a1-2227-42a3-93ee-d980574a398f" />
+[API Gateway POST Method] (<img width="1290" height="557" alt="Screenshot 2026-09-21 145549" src="https://github.com/user-attachments/assets/996496a1-2227-42a3-93ee-d980574a398f" />
 )
 
 After configuring the GET and POST methods, the API was deployed using an API Gateway stage. The deployment makes the configured API resources and Lambda integrations available through the deployed API endpoint so that the frontend can communicate with the serverless backend.
 
-![API Gateway Deployment](<img width="1264" height="476" alt="Screenshot 2026-09-21 145639" src="https://github.com/user-attachments/assets/08a04c5d-cdfc-42a3-ab08-8b71213fa6ff" />
+[API Gateway Deployment] (<img width="1264" height="476" alt="Screenshot 2026-09-21 145639" src="https://github.com/user-attachments/assets/08a04c5d-cdfc-42a3-ab08-8b71213fa6ff" />
 )
 
 ## Amazon S3 Frontend Deployment
 
 The frontend of the application was hosted using **Amazon S3**. The S3 bucket was configured to contain the static website files required by the application. The frontend files, including `add_student.html`, `fetch_all_students.html`, `index.html`, and the supporting JavaScript file, were uploaded to the S3 bucket.
 
-![S3 Frontend Upload](<img width="1489" height="460" alt="Screenshot 2026-09-21 145935" src="https://github.com/user-attachments/assets/0afb648b-6433-4d36-9665-d6a7c33acec7" />
+[S3 Frontend Upload] (<img width="1489" height="460" alt="Screenshot 2026-09-21 145935" src="https://github.com/user-attachments/assets/0afb648b-6433-4d36-9665-d6a7c33acec7" />
 )
 
 After the upload was completed, the S3 bucket contained the frontend application files. These files provide the user interface for adding students and viewing the student records retrieved from the serverless backend.
 
-![S3 Bucket Objects](<img width="1531" height="546" alt="Screenshot 2026-09-21 150342" src="https://github.com/user-attachments/assets/a93b2842-dce3-4b32-98b9-8f2cd9915674" />
+[S3 Bucket Objects] (<img width="1531" height="546" alt="Screenshot 2026-09-21 150342" src="https://github.com/user-attachments/assets/a93b2842-dce3-4b32-98b9-8f2cd9915674" />
 )
 
 A bucket policy was configured to allow the required access to the S3 objects. The policy grants `s3:GetObject` permission for objects within the application bucket, allowing the static website files to be accessed through the S3 website endpoint.
 
-![S3 Bucket Policy](<img width="1126" height="553" alt="Screenshot 2026-09-21 150945" src="https://github.com/user-attachments/assets/c6d061c5-aca9-4443-8269-e8e539847b66" />
+[S3 Bucket Policy] (<img width="1126" height="553" alt="Screenshot 2026-09-21 150945" src="https://github.com/user-attachments/assets/c6d061c5-aca9-4443-8269-e8e539847b66" />
 )
 
 ## Serverless Application Testing
 
 After configuring S3, API Gateway, Lambda, and DynamoDB, the deployed application was tested through the S3 website endpoint. The **Add Student** page allows a user to enter the student's ID, name, class, and age. The information is submitted through the frontend and sent to the API Gateway POST endpoint, which invokes the WRITE-DB Lambda function and stores the record in DynamoDB.
 
-![Add Student Application](<img width="1499" height="750" alt="Screenshot 2026-09-21 151239" src="https://github.com/user-attachments/assets/fb26009b-09e9-402a-a419-a4a0ac656880" />
+[Add Student Application] (<img width="1499" height="750" alt="Screenshot 2026-09-21 151239" src="https://github.com/user-attachments/assets/fb26009b-09e9-402a-a419-a4a0ac656880" />
 )
 
 The student records can then be retrieved through the **All Students** page. When the user selects **Load Students**, the frontend sends a GET request to API Gateway. API Gateway invokes the READ-DB Lambda function, which retrieves the records from DynamoDB and returns them to the frontend. The application successfully displayed the stored student records, demonstrating communication between the frontend, API Gateway, Lambda, and DynamoDB services.
 
-![All Students Application](<img width="1535" height="864" alt="Screenshot 2026-09-21 151333" src="https://github.com/user-attachments/assets/85837a6d-8338-40c6-9bc8-840325e8fb79" />
+[All Students Application] (<img width="1535" height="864" alt="Screenshot 2026-09-21 151333" src="https://github.com/user-attachments/assets/85837a6d-8338-40c6-9bc8-840325e8fb79" />
 )
 
 ## Complete Serverless Request Flow
